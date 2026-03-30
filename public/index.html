@@ -47,6 +47,14 @@
   }
 
   /* HEADER */
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
   header {
     position: relative;
     z-index: 10;
@@ -624,10 +632,13 @@
     <div class="logo-icon">🔗</div>
     <h1>Portal <span>de Sistemas</span></h1>
   </div>
-  <button class="btn-primary" id="addCompanyBtn">
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    Adicionar Empresa
-  </button>
+  <div class="header-actions">
+    <button type="button" class="btn-ghost" id="apiKeyBtn" title="Se o servidor usar chave, configure aqui (toda a equipe usa a mesma)">Chave da equipe</button>
+    <button class="btn-primary" id="addCompanyBtn">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Adicionar Empresa
+    </button>
+  </div>
 </header>
 
 <main id="app"></main>
@@ -646,22 +657,71 @@ const COLORS = [
 
 const LINK_ICONS = ['🖥️','📊','📈','🔐','📋','⚙️','🗃️','🧾','📦','🔍','💼','📡'];
 
+// --- API: dados no servidor (PostgreSQL) — mesma visão para toda a equipe ---
+const API_BASE = '';
+
+function getPortalKey() {
+  try { return localStorage.getItem('portal_api_key') || ''; } catch { return ''; }
+}
+
+function setPortalKey(v) {
+  try {
+    if (v) localStorage.setItem('portal_api_key', v);
+    else localStorage.removeItem('portal_api_key');
+  } catch (_) {}
+}
+
+async function apiFetch(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  if (options.body && typeof options.body === 'string') {
+    headers['Content-Type'] = 'application/json';
+  }
+  const k = getPortalKey();
+  if (k) headers['X-Portal-Key'] = k;
+  const res = await fetch(API_BASE + path, { ...options, headers });
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = { raw: text };
+  }
+  if (res.status === 401) {
+    const err = new Error(data && data.error ? data.error : 'Não autorizado. Configure a chave da equipe.');
+    err.unauthorized = true;
+    throw err;
+  }
+  if (!res.ok) {
+    const msg = data && data.error ? data.error : `Erro ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+let companies = [];
+let loadError = null;
+let loading = true;
+
+async function loadCompanies() {
+  loading = true;
+  loadError = null;
+  try {
+    const data = await apiFetch('/api/companies');
+    companies = data.companies || [];
+  } catch (e) {
+    loadError = e.message || 'Falha ao carregar';
+    companies = [];
+  } finally {
+    loading = false;
+  }
+}
+
 // --- STATE ---
 let state = {
   view: 'home', // 'home' | 'detail'
   activeCompany: null,
   search: '',
 };
-
-function load() {
-  try { return JSON.parse(localStorage.getItem('portal_data') || '[]'); } catch { return []; }
-}
-
-function save(data) {
-  localStorage.setItem('portal_data', JSON.stringify(data));
-}
-
-let companies = load();
 
 // --- RENDER ---
 function getInitials(name) {
@@ -670,6 +730,29 @@ function getInitials(name) {
 
 function render() {
   const app = document.getElementById('app');
+  if (loading) {
+    app.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⏳</div>
+        <h2>Carregando…</h2>
+        <p style="color:var(--muted);margin-top:8px;">Buscando empresas e links no servidor.</p>
+      </div>`;
+    return;
+  }
+  if (loadError) {
+    app.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <h2>Não foi possível carregar</h2>
+        <p style="color:var(--muted);margin-top:8px;max-width:420px;">${loadError.replace(/</g, '&lt;')}</p>
+        <p style="color:var(--muted);margin-top:12px;font-size:0.85rem;">Se o administrador configurou uma chave no Render, clique em <strong>Chave da equipe</strong> e cole a mesma chave que a equipe usa.</p>
+        <button class="btn-primary" style="margin-top:20px" id="retryLoadBtn">Tentar de novo</button>
+      </div>`;
+    document.getElementById('retryLoadBtn').addEventListener('click', () => {
+      loadCompanies().then(() => render());
+    });
+    return;
+  }
   if (state.view === 'home') renderHome(app);
   else renderDetail(app);
 }
@@ -887,19 +970,23 @@ window.selectColor = function(el) {
   el.classList.add('selected');
 };
 
-window.submitCompany = function() {
+window.submitCompany = async function() {
   const name = document.getElementById('companyNameInput').value.trim();
   if (!name) { showToast('⚠️ Digite o nome da empresa'); return; }
 
   const selectedDot = document.querySelector('.color-dot.selected');
   const color = selectedDot ? selectedDot.dataset.color : COLORS[0];
 
-  const company = { id: Date.now().toString(), name, color, links: [] };
-  companies.push(company);
-  save(companies);
-  closeModal();
-  showToast('✅ Empresa criada!');
-  render();
+  try {
+    await apiFetch('/api/companies', { method: 'POST', body: JSON.stringify({ name, color }) });
+    closeModal();
+    showToast('✅ Empresa criada!');
+    await loadCompanies();
+    render();
+  } catch (e) {
+    if (e.unauthorized) openApiKeyModal();
+    showToast('⚠️ ' + (e.message || 'Erro ao criar empresa'));
+  }
 };
 
 function openAddLinkModal(companyId) {
@@ -946,7 +1033,7 @@ window.selectIcon = function(el) {
   el.classList.add('selected');
 };
 
-window.submitLink = function(companyId) {
+window.submitLink = async function(companyId) {
   const label = document.getElementById('linkLabelInput').value.trim();
   let url = document.getElementById('linkUrlInput').value.trim();
   const desc = document.getElementById('linkDescInput').value.trim();
@@ -957,34 +1044,85 @@ window.submitLink = function(companyId) {
   if (!url) { showToast('⚠️ Digite a URL'); return; }
   if (!url.startsWith('http')) url = 'https://' + url;
 
-  const company = companies.find(c => c.id === companyId);
-  if (!company) return;
-
-  if (!company.links) company.links = [];
-  company.links.push({ id: Date.now().toString(), label, url, desc, icon });
-  save(companies);
-  closeModal();
-  showToast('✅ Link adicionado!');
-  render();
+  try {
+    await apiFetch('/api/companies/' + encodeURIComponent(companyId) + '/links', {
+      method: 'POST',
+      body: JSON.stringify({ label, url, desc, icon }),
+    });
+    closeModal();
+    showToast('✅ Link adicionado!');
+    await loadCompanies();
+    render();
+  } catch (e) {
+    if (e.unauthorized) openApiKeyModal();
+    showToast('⚠️ ' + (e.message || 'Erro ao adicionar link'));
+  }
 };
 
-window.deleteCompany = function(id) {
+window.deleteCompany = async function(id) {
   if (!confirm('Excluir esta empresa e todos seus links?')) return;
-  companies = companies.filter(c => c.id !== id);
-  save(companies);
-  if (state.activeCompany === id) goHome();
-  else render();
-  showToast('🗑 Empresa removida');
+  try {
+    await apiFetch('/api/companies/' + encodeURIComponent(id), { method: 'DELETE' });
+    await loadCompanies();
+    if (state.activeCompany === id) {
+      state.view = 'home';
+      state.activeCompany = null;
+    }
+    render();
+    showToast('🗑 Empresa removida');
+  } catch (e) {
+    if (e.unauthorized) openApiKeyModal();
+    showToast('⚠️ ' + (e.message || 'Erro ao excluir'));
+  }
 };
 
-window.deleteLink = function(companyId, linkId) {
-  const company = companies.find(c => c.id === companyId);
-  if (!company) return;
-  company.links = company.links.filter(l => l.id !== linkId);
-  save(companies);
-  render();
-  showToast('🗑 Link removido');
+window.deleteLink = async function(companyId, linkId) {
+  try {
+    await apiFetch('/api/links/' + encodeURIComponent(linkId), { method: 'DELETE' });
+    await loadCompanies();
+    render();
+    showToast('🗑 Link removido');
+  } catch (e) {
+    if (e.unauthorized) openApiKeyModal();
+    showToast('⚠️ ' + (e.message || 'Erro ao excluir link'));
+  }
 };
+
+function openApiKeyModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-title">Chave da equipe</div>
+      <p style="font-size:0.85rem;color:var(--muted);line-height:1.5;margin-bottom:16px;">Se no Render existir a variável <strong>PORTAL_API_KEY</strong>, use o mesmo valor aqui. Cada pessoa salva uma vez neste navegador. <strong>Ler</strong> empresas e links não precisa de chave; criar e excluir precisam, se a chave estiver ativa.</p>
+      <div class="form-group">
+        <label>Chave (opcional)</label>
+        <input type="password" id="portalKeyInput" placeholder="Cole a chave definida no Render" autocomplete="off">
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" type="button" id="clearPortalKeyBtn">Remover chave</button>
+        <button class="btn-ghost" type="button" onclick="closeModal()">Fechar</button>
+        <button class="btn-primary" type="button" id="savePortalKeyBtn">Salvar</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  document.body.appendChild(overlay);
+  const input = overlay.querySelector('#portalKeyInput');
+  input.value = getPortalKey();
+  input.focus();
+  overlay.querySelector('#savePortalKeyBtn').addEventListener('click', () => {
+    setPortalKey(input.value.trim());
+    closeModal();
+    showToast('✅ Chave salva neste navegador');
+    loadCompanies().then(() => render());
+  });
+  overlay.querySelector('#clearPortalKeyBtn').addEventListener('click', () => {
+    setPortalKey('');
+    input.value = '';
+    showToast('Chave removida');
+  });
+}
 
 function closeModal() {
   const overlay = document.querySelector('.overlay');
@@ -992,6 +1130,7 @@ function closeModal() {
 }
 
 window.closeModal = closeModal;
+window.openApiKeyModal = openApiKeyModal;
 window.openAddCompanyModal = openAddCompanyModal;
 window.openAddLinkModal = openAddLinkModal;
 window.goHome = goHome;
@@ -1009,9 +1148,11 @@ function showToast(msg) {
 
 // --- ADD COMPANY BUTTON ---
 document.getElementById('addCompanyBtn').addEventListener('click', openAddCompanyModal);
+document.getElementById('apiKeyBtn').addEventListener('click', openApiKeyModal);
 
 // Init
 render();
+loadCompanies().then(() => render());
 </script>
 </body>
 </html>
