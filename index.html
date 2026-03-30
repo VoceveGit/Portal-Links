@@ -2,10 +2,1016 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=Portal-link.html">
-<title>Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal de Sistemas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e28;
+    --border: rgba(255,255,255,0.07);
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --accent-glow: rgba(79,142,247,0.18);
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --danger: #f05c5c;
+    --success: #3ecf8e;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BG noise texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 28px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(13,15,20,0.85);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .logo h1 {
+    font-family: var(--font-head);
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .logo span {
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: var(--radius-sm);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* MAIN */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  .section-title {
+    font-family: var(--font-head);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 100px 24px;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    opacity: 0.4;
+  }
+
+  .empty-state h2 {
+    font-family: var(--font-head);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--muted);
+  }
+
+  .empty-state p {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-bottom: 28px;
+  }
+
+  /* COMPANY GRID */
+  .companies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+  }
+
+  .company-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .company-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .company-card:hover {
+    border-color: rgba(79,142,247,0.35);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(79,142,247,0.1);
+  }
+
+  .company-card:hover::before { opacity: 1; }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .company-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    color: #fff;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .company-card:hover .card-actions { opacity: 1; }
+
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    transition: all 0.15s;
+  }
+
+  .icon-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+  .icon-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
+
+  .company-name {
+    font-family: var(--font-head);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    letter-spacing: -0.01em;
+  }
+
+  .company-meta {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .links-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 16px;
+  }
+
+  .link-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+
+  .link-chip-more {
+    background: linear-gradient(135deg, rgba(79,142,247,0.12), rgba(124,92,252,0.12));
+    border-color: rgba(79,142,247,0.2);
+    color: var(--accent);
+  }
+
+  /* DETAIL VIEW */
+  .detail-view {
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 32px;
+    transition: color 0.15s;
+  }
+
+  .back-btn:hover { color: var(--text); }
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .detail-title-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .detail-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-head);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .detail-company-name {
+    font-family: var(--font-head);
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+
+  .detail-count {
+    font-size: 0.875rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* LINKS LIST */
+  .links-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+  }
+
+  .link-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+
+  .link-card:hover {
+    border-color: rgba(79,142,247,0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .link-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent-glow), rgba(124,92,252,0.15));
+    border: 1px solid rgba(79,142,247,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .link-info { flex: 1; min-width: 0; }
+
+  .link-label {
+    font-family: var(--font-head);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .link-desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .link-card a:hover .link-arrow { color: var(--accent); transform: translateX(3px); }
+
+  .link-arrow {
+    color: var(--muted);
+    font-size: 0.9rem;
+    transition: color 0.15s, transform 0.15s;
+    flex-shrink: 0;
+  }
+
+  .link-delete-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    transition: all 0.15s;
+  }
+
+  .link-card:hover .link-delete-btn {
+    color: var(--muted);
+    border-color: var(--border);
+    background: var(--surface2);
+  }
+
+  .link-delete-btn:hover { color: var(--danger) !important; border-color: var(--danger) !important; }
+
+  /* EMPTY LINKS */
+  .empty-links {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--muted);
+  }
+
+  .empty-links .empty-icon { font-size: 2rem; }
+
+  /* MODALS */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    padding: 32px;
+    width: 100%;
+    max-width: 440px;
+    animation: scaleIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .modal-title {
+    font-family: var(--font-head);
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    letter-spacing: -0.02em;
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  input, textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    padding: 11px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: none;
+  }
+
+  input:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,142,247,0.12);
+  }
+
+  input::placeholder, textarea::placeholder { color: var(--muted); }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .btn-ghost {
+    padding: 10px 18px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+
+  .color-picker-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .color-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+
+  .color-dot:hover { transform: scale(1.15); }
+  .color-dot.selected { border-color: #fff; transform: scale(1.1); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 0.875rem;
+    color: var(--text);
+    z-index: 999;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards;
+    white-space: nowrap;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  @keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(20px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+  @keyframes toastOut { to { opacity:0; transform: translateX(-50%) translateY(20px); } }
+
+  /* SEARCH */
+  .search-bar {
+    position: relative;
+    margin-bottom: 32px;
+  }
+
+  .search-bar input {
+    padding-left: 40px;
+    background: var(--surface);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 0.9rem;
+    pointer-events: none;
+  }
+
+  @media (max-width: 600px) {
+    header { padding: 18px 20px; }
+    main { padding: 28px 16px 60px; }
+    .companies-grid { grid-template-columns: 1fr; }
+    .links-list { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
-<p>Redirecionando… <a href="Portal-link.html">Abrir o portal</a></p>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔗</div>
+    <h1>Portal <span>de Sistemas</span></h1>
+  </div>
+  <button class="btn-primary" id="addCompanyBtn">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    Adicionar Empresa
+  </button>
+</header>
+
+<main id="app"></main>
+
+<script>
+const COLORS = [
+  'linear-gradient(135deg,#4f8ef7,#7c5cfc)',
+  'linear-gradient(135deg,#3ecf8e,#1a9e68)',
+  'linear-gradient(135deg,#f05c5c,#c0392b)',
+  'linear-gradient(135deg,#f59e0b,#d97706)',
+  'linear-gradient(135deg,#06b6d4,#0284c7)',
+  'linear-gradient(135deg,#ec4899,#a855f7)',
+  'linear-gradient(135deg,#84cc16,#4d7c0f)',
+  'linear-gradient(135deg,#f97316,#dc2626)',
+];
+
+const LINK_ICONS = ['🖥️','📊','📈','🔐','📋','⚙️','🗃️','🧾','📦','🔍','💼','📡'];
+
+// --- STATE ---
+let state = {
+  view: 'home', // 'home' | 'detail'
+  activeCompany: null,
+  search: '',
+};
+
+function load() {
+  try { return JSON.parse(localStorage.getItem('portal_data') || '[]'); } catch { return []; }
+}
+
+function save(data) {
+  localStorage.setItem('portal_data', JSON.stringify(data));
+}
+
+let companies = load();
+
+// --- RENDER ---
+function getInitials(name) {
+  return name.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+}
+
+function render() {
+  const app = document.getElementById('app');
+  if (state.view === 'home') renderHome(app);
+  else renderDetail(app);
+}
+
+function renderHome(app) {
+  const filtered = companies.filter(c =>
+    c.name.toLowerCase().includes(state.search.toLowerCase())
+  );
+
+  app.innerHTML = '';
+
+  // search
+  if (companies.length > 0) {
+    const searchEl = document.createElement('div');
+    searchEl.className = 'search-bar';
+    searchEl.innerHTML = `
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Buscar empresa..." id="searchInput" value="${state.search}">
+    `;
+    app.appendChild(searchEl);
+    searchEl.querySelector('input').addEventListener('input', e => {
+      state.search = e.target.value;
+      render();
+    });
+    setTimeout(() => {
+      const inp = document.getElementById('searchInput');
+      if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    }, 10);
+  }
+
+  if (companies.length === 0) {
+    app.innerHTML += `
+      <div class="empty-state">
+        <div class="empty-icon">🏢</div>
+        <h2>Nenhuma empresa ainda</h2>
+        <p>Comece adicionando uma empresa para organizar seus sistemas e links.</p>
+        <button class="btn-primary" onclick="openAddCompanyModal()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Adicionar Empresa
+        </button>
+      </div>`;
+    return;
+  }
+
+  if (filtered.length === 0) {
+    const p = document.createElement('p');
+    p.style.cssText = 'color:var(--muted);text-align:center;padding:60px 0;';
+    p.textContent = 'Nenhuma empresa encontrada.';
+    app.appendChild(p);
+    return;
+  }
+
+  const label = document.createElement('p');
+  label.className = 'section-title';
+  label.textContent = `${filtered.length} ${filtered.length === 1 ? 'empresa' : 'empresas'}`;
+  app.appendChild(label);
+
+  const grid = document.createElement('div');
+  grid.className = 'companies-grid';
+
+  filtered.forEach(company => {
+    const card = document.createElement('div');
+    card.className = 'company-card';
+    card.setAttribute('data-id', company.id);
+
+    const linkCount = (company.links || []).length;
+    const preview = (company.links || []).slice(0,3);
+    const extra = linkCount - 3;
+
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="company-avatar" style="background:${company.color}">${getInitials(company.name)}</div>
+        <div class="card-actions">
+          <button class="icon-btn danger" title="Excluir empresa" onclick="event.stopPropagation(); deleteCompany('${company.id}')">🗑</button>
+        </div>
+      </div>
+      <div class="company-name">${company.name}</div>
+      <div class="company-meta">${linkCount} ${linkCount === 1 ? 'sistema' : 'sistemas'}</div>
+      ${linkCount > 0 ? `
+        <div class="links-preview">
+          ${preview.map(l=>`<span class="link-chip" title="${l.label}">${l.label}</span>`).join('')}
+          ${extra > 0 ? `<span class="link-chip link-chip-more">+${extra}</span>` : ''}
+        </div>
+      ` : ''}
+    `;
+
+    card.addEventListener('click', () => {
+      state.view = 'detail';
+      state.activeCompany = company.id;
+      render();
+    });
+
+    grid.appendChild(card);
+  });
+
+  app.appendChild(grid);
+}
+
+function renderDetail(app) {
+  const company = companies.find(c => c.id === state.activeCompany);
+  if (!company) { state.view = 'home'; render(); return; }
+
+  app.innerHTML = '';
+
+  const detail = document.createElement('div');
+  detail.className = 'detail-view';
+
+  const linkCount = (company.links || []).length;
+
+  detail.innerHTML = `
+    <button class="back-btn" onclick="goHome()">← Voltar</button>
+    <div class="detail-header">
+      <div class="detail-title-group">
+        <div class="detail-avatar" style="background:${company.color}">${getInitials(company.name)}</div>
+        <div>
+          <div class="detail-company-name">${company.name}</div>
+          <div class="detail-count">${linkCount} ${linkCount === 1 ? 'sistema cadastrado' : 'sistemas cadastrados'}</div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="openAddLinkModal('${company.id}')">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Adicionar Link
+      </button>
+    </div>
+    <div class="links-list" id="linksList"></div>
+  `;
+
+  app.appendChild(detail);
+
+  const list = document.getElementById('linksList');
+
+  if ((company.links || []).length === 0) {
+    list.innerHTML = `
+      <div class="empty-links">
+        <div class="empty-icon">🔗</div>
+        <p style="margin-top:12px;">Nenhum sistema cadastrado ainda.</p>
+        <p style="font-size:0.8rem;margin-top:4px;">Clique em "Adicionar Link" para começar.</p>
+      </div>`;
+    return;
+  }
+
+  company.links.forEach(link => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'link-card';
+
+    const anchor = document.createElement('a');
+    anchor.href = link.url;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    anchor.style.cssText = 'display:flex;align-items:center;gap:16px;flex:1;min-width:0;text-decoration:none;';
+    anchor.innerHTML = `
+      <div class="link-icon">${link.icon || '🖥️'}</div>
+      <div class="link-info">
+        <div class="link-label">${link.label}</div>
+        <div class="link-desc">${link.desc || link.url}</div>
+      </div>
+      <div class="link-arrow">↗</div>
+    `;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'link-delete-btn';
+    delBtn.title = 'Remover';
+    delBtn.textContent = '✕';
+    delBtn.addEventListener('click', () => deleteLink(company.id, link.id));
+
+    wrapper.appendChild(anchor);
+    wrapper.appendChild(delBtn);
+    list.appendChild(wrapper);
+  });
+}
+
+function goHome() {
+  state.view = 'home';
+  state.activeCompany = null;
+  render();
+}
+
+// --- MODALS ---
+function openAddCompanyModal() {
+  let selectedColor = COLORS[0];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-title">Nova Empresa</div>
+      <div class="form-group">
+        <label>Nome da Empresa</label>
+        <input type="text" id="companyNameInput" placeholder="Ex: Acme Corp" autofocus maxlength="50">
+      </div>
+      <div class="form-group">
+        <label>Cor</label>
+        <div class="color-picker-row">
+          ${COLORS.map((c,i)=>`<div class="color-dot ${i===0?'selected':''}" style="background:${c}" data-color="${c}" onclick="selectColor(this)"></div>`).join('')}
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn-primary" onclick="submitCompany()">Criar Empresa</button>
+      </div>
+    </div>
+  `;
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#companyNameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitCompany();
+    if (e.key === 'Escape') closeModal();
+  });
+}
+
+window.selectColor = function(el) {
+  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+};
+
+window.submitCompany = function() {
+  const name = document.getElementById('companyNameInput').value.trim();
+  if (!name) { showToast('⚠️ Digite o nome da empresa'); return; }
+
+  const selectedDot = document.querySelector('.color-dot.selected');
+  const color = selectedDot ? selectedDot.dataset.color : COLORS[0];
+
+  const company = { id: Date.now().toString(), name, color, links: [] };
+  companies.push(company);
+  save(companies);
+  closeModal();
+  showToast('✅ Empresa criada!');
+  render();
+};
+
+function openAddLinkModal(companyId) {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-title">Novo Link</div>
+      <div class="form-group">
+        <label>Nome / Descrição curta</label>
+        <input type="text" id="linkLabelInput" placeholder="Ex: Dashboard de Vendas" autofocus maxlength="60">
+      </div>
+      <div class="form-group">
+        <label>URL</label>
+        <input type="url" id="linkUrlInput" placeholder="https://meu-sistema.onrender.com">
+      </div>
+      <div class="form-group">
+        <label>Descrição (opcional)</label>
+        <textarea id="linkDescInput" rows="2" placeholder="Breve explicação do que é esse sistema..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Ícone</label>
+        <div class="color-picker-row" style="flex-wrap:wrap">
+          ${LINK_ICONS.map((ic,i)=>`<div class="color-dot ${i===0?'selected':''}" style="background:var(--surface2);font-size:1rem;display:flex;align-items:center;justify-content:center;border:1px solid var(--border)" data-icon="${ic}" onclick="selectIcon(this)">${ic}</div>`).join('')}
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn-primary" onclick="submitLink('${companyId}')">Adicionar Link</button>
+      </div>
+    </div>
+  `;
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.body.appendChild(overlay);
+}
+
+window.selectIcon = function(el) {
+  document.querySelectorAll('[data-icon]').forEach(d => {
+    d.style.borderColor = 'var(--border)';
+    d.classList.remove('selected');
+  });
+  el.style.borderColor = 'var(--accent)';
+  el.classList.add('selected');
+};
+
+window.submitLink = function(companyId) {
+  const label = document.getElementById('linkLabelInput').value.trim();
+  let url = document.getElementById('linkUrlInput').value.trim();
+  const desc = document.getElementById('linkDescInput').value.trim();
+  const selectedIcon = document.querySelector('[data-icon].selected');
+  const icon = selectedIcon ? selectedIcon.dataset.icon : '🖥️';
+
+  if (!label) { showToast('⚠️ Digite o nome do sistema'); return; }
+  if (!url) { showToast('⚠️ Digite a URL'); return; }
+  if (!url.startsWith('http')) url = 'https://' + url;
+
+  const company = companies.find(c => c.id === companyId);
+  if (!company) return;
+
+  if (!company.links) company.links = [];
+  company.links.push({ id: Date.now().toString(), label, url, desc, icon });
+  save(companies);
+  closeModal();
+  showToast('✅ Link adicionado!');
+  render();
+};
+
+window.deleteCompany = function(id) {
+  if (!confirm('Excluir esta empresa e todos seus links?')) return;
+  companies = companies.filter(c => c.id !== id);
+  save(companies);
+  if (state.activeCompany === id) goHome();
+  else render();
+  showToast('🗑 Empresa removida');
+};
+
+window.deleteLink = function(companyId, linkId) {
+  const company = companies.find(c => c.id === companyId);
+  if (!company) return;
+  company.links = company.links.filter(l => l.id !== linkId);
+  save(companies);
+  render();
+  showToast('🗑 Link removido');
+};
+
+function closeModal() {
+  const overlay = document.querySelector('.overlay');
+  if (overlay) overlay.remove();
+}
+
+window.closeModal = closeModal;
+window.openAddCompanyModal = openAddCompanyModal;
+window.openAddLinkModal = openAddLinkModal;
+window.goHome = goHome;
+
+// --- TOAST ---
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+
+// --- ADD COMPANY BUTTON ---
+document.getElementById('addCompanyBtn').addEventListener('click', openAddCompanyModal);
+
+// Init
+render();
+</script>
 </body>
 </html>
