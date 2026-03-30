@@ -137,6 +137,32 @@
   }
   .btn-primary:active { transform: translateY(0); }
 
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    pointer-events: none;
+  }
+
+  .delete-confirm-instruction {
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.55;
+    margin-bottom: 6px;
+  }
+
+  .delete-confirm-keyword {
+    color: var(--orange);
+    font-weight: 700;
+  }
+
+  .delete-confirm-hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
   /* MAIN */
   main {
     position: relative;
@@ -660,7 +686,6 @@
     <h1>Portal <span>de Sistemas</span></h1>
   </div>
   <div class="header-actions">
-    <button type="button" class="btn-ghost" id="apiKeyBtn" title="Se o servidor usar chave, configure aqui (toda a equipe usa a mesma)">Chave da equipe</button>
     <button class="btn-primary" id="addCompanyBtn">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       Adicionar Empresa
@@ -687,24 +712,11 @@ const LINK_ICONS = ['🖥️','📊','📈','🔐','📋','⚙️','🗃️','�
 // --- API: dados no servidor (PostgreSQL) — mesma visão para toda a equipe ---
 const API_BASE = '';
 
-function getPortalKey() {
-  try { return localStorage.getItem('portal_api_key') || ''; } catch { return ''; }
-}
-
-function setPortalKey(v) {
-  try {
-    if (v) localStorage.setItem('portal_api_key', v);
-    else localStorage.removeItem('portal_api_key');
-  } catch (_) {}
-}
-
 async function apiFetch(path, options = {}) {
   const headers = { ...(options.headers || {}) };
   if (options.body && typeof options.body === 'string') {
     headers['Content-Type'] = 'application/json';
   }
-  const k = getPortalKey();
-  if (k) headers['X-Portal-Key'] = k;
   const res = await fetch(API_BASE + path, { ...options, headers });
   const text = await res.text();
   let data = null;
@@ -713,16 +725,63 @@ async function apiFetch(path, options = {}) {
   } catch {
     data = { raw: text };
   }
-  if (res.status === 401) {
-    const err = new Error(data && data.error ? data.error : 'Não autorizado. Configure a chave da equipe.');
-    err.unauthorized = true;
-    throw err;
-  }
   if (!res.ok) {
     const msg = data && data.error ? data.error : `Erro ${res.status}`;
     throw new Error(msg);
   }
   return data;
+}
+
+const DELETE_CONFIRM_PHRASE = 'Confirmar Exclusão';
+
+function openDeleteConfirmModal({ title, hint, onConfirm }) {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-title">${title}</div>
+      <p class="delete-confirm-hint">${hint}</p>
+      <p class="delete-confirm-instruction">Para se certificar dessa exclusão, digite abaixo <span class="delete-confirm-keyword">Confirmar Exclusão</span></p>
+      <div class="form-group">
+        <label>Digite a frase acima</label>
+        <input type="text" id="deleteConfirmInput" autocomplete="off" placeholder="Confirmar Exclusão">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="deleteConfirmCancel">Cancelar</button>
+        <button type="button" class="btn-primary" id="deleteConfirmSubmit" disabled>Excluir definitivamente</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+
+  const input = overlay.querySelector('#deleteConfirmInput');
+  const submitBtn = overlay.querySelector('#deleteConfirmSubmit');
+
+  function syncSubmit() {
+    const ok = input.value === DELETE_CONFIRM_PHRASE;
+    submitBtn.disabled = !ok;
+  }
+
+  input.addEventListener('input', syncSubmit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') overlay.remove();
+  });
+  input.focus();
+
+  overlay.querySelector('#deleteConfirmCancel').addEventListener('click', () => overlay.remove());
+
+  submitBtn.addEventListener('click', async () => {
+    if (input.value !== DELETE_CONFIRM_PHRASE) return;
+    submitBtn.disabled = true;
+    try {
+      await onConfirm();
+      overlay.remove();
+    } catch (e) {
+      showToast('⚠️ ' + (e.message || 'Erro ao excluir'));
+      submitBtn.disabled = false;
+    }
+  });
 }
 
 let companies = [];
@@ -772,7 +831,6 @@ function render() {
         <div class="empty-icon">⚠️</div>
         <h2>Não foi possível carregar</h2>
         <p style="color:var(--muted);margin-top:8px;max-width:420px;">${loadError.replace(/</g, '&lt;')}</p>
-        <p style="color:var(--muted);margin-top:12px;font-size:0.85rem;">Se o administrador configurou uma chave no Render, clique em <strong>Chave da equipe</strong> e cole a mesma chave que a equipe usa.</p>
         <button class="btn-primary" style="margin-top:20px" id="retryLoadBtn">Tentar de novo</button>
       </div>`;
     document.getElementById('retryLoadBtn').addEventListener('click', () => {
@@ -1011,7 +1069,6 @@ window.submitCompany = async function() {
     await loadCompanies();
     render();
   } catch (e) {
-    if (e.unauthorized) openApiKeyModal();
     showToast('⚠️ ' + (e.message || 'Erro ao criar empresa'));
   }
 };
@@ -1081,75 +1138,39 @@ window.submitLink = async function(companyId) {
     await loadCompanies();
     render();
   } catch (e) {
-    if (e.unauthorized) openApiKeyModal();
     showToast('⚠️ ' + (e.message || 'Erro ao adicionar link'));
   }
 };
 
-window.deleteCompany = async function(id) {
-  if (!confirm('Excluir esta empresa e todos seus links?')) return;
-  try {
-    await apiFetch('/api/companies/' + encodeURIComponent(id), { method: 'DELETE' });
-    await loadCompanies();
-    if (state.activeCompany === id) {
-      state.view = 'home';
-      state.activeCompany = null;
-    }
-    render();
-    showToast('🗑 Empresa removida');
-  } catch (e) {
-    if (e.unauthorized) openApiKeyModal();
-    showToast('⚠️ ' + (e.message || 'Erro ao excluir'));
-  }
+window.deleteCompany = function(id) {
+  openDeleteConfirmModal({
+    title: 'Excluir empresa',
+    hint: 'A empresa e todos os sistemas (links) vinculados a ela serão removidos permanentemente.',
+    onConfirm: async () => {
+      await apiFetch('/api/companies/' + encodeURIComponent(id), { method: 'DELETE' });
+      await loadCompanies();
+      if (state.activeCompany === id) {
+        state.view = 'home';
+        state.activeCompany = null;
+      }
+      render();
+      showToast('🗑 Empresa removida');
+    },
+  });
 };
 
-window.deleteLink = async function(companyId, linkId) {
-  try {
-    await apiFetch('/api/links/' + encodeURIComponent(linkId), { method: 'DELETE' });
-    await loadCompanies();
-    render();
-    showToast('🗑 Link removido');
-  } catch (e) {
-    if (e.unauthorized) openApiKeyModal();
-    showToast('⚠️ ' + (e.message || 'Erro ao excluir link'));
-  }
+window.deleteLink = function(companyId, linkId) {
+  openDeleteConfirmModal({
+    title: 'Excluir link',
+    hint: 'Este sistema será removido apenas desta empresa.',
+    onConfirm: async () => {
+      await apiFetch('/api/links/' + encodeURIComponent(linkId), { method: 'DELETE' });
+      await loadCompanies();
+      render();
+      showToast('🗑 Link removido');
+    },
+  });
 };
-
-function openApiKeyModal() {
-  const overlay = document.createElement('div');
-  overlay.className = 'overlay';
-  overlay.innerHTML = `
-    <div class="modal">
-      <div class="modal-title">Chave da equipe</div>
-      <p style="font-size:0.85rem;color:var(--muted);line-height:1.5;margin-bottom:16px;">Se no Render existir a variável <strong>PORTAL_API_KEY</strong>, use o mesmo valor aqui. Cada pessoa salva uma vez neste navegador. <strong>Ler</strong> empresas e links não precisa de chave; criar e excluir precisam, se a chave estiver ativa.</p>
-      <div class="form-group">
-        <label>Chave (opcional)</label>
-        <input type="password" id="portalKeyInput" placeholder="Cole a chave definida no Render" autocomplete="off">
-      </div>
-      <div class="modal-actions">
-        <button class="btn-ghost" type="button" id="clearPortalKeyBtn">Remover chave</button>
-        <button class="btn-ghost" type="button" onclick="closeModal()">Fechar</button>
-        <button class="btn-primary" type="button" id="savePortalKeyBtn">Salvar</button>
-      </div>
-    </div>
-  `;
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
-  document.body.appendChild(overlay);
-  const input = overlay.querySelector('#portalKeyInput');
-  input.value = getPortalKey();
-  input.focus();
-  overlay.querySelector('#savePortalKeyBtn').addEventListener('click', () => {
-    setPortalKey(input.value.trim());
-    closeModal();
-    showToast('✅ Chave salva neste navegador');
-    loadCompanies().then(() => render());
-  });
-  overlay.querySelector('#clearPortalKeyBtn').addEventListener('click', () => {
-    setPortalKey('');
-    input.value = '';
-    showToast('Chave removida');
-  });
-}
 
 function closeModal() {
   const overlay = document.querySelector('.overlay');
@@ -1157,7 +1178,6 @@ function closeModal() {
 }
 
 window.closeModal = closeModal;
-window.openApiKeyModal = openApiKeyModal;
 window.openAddCompanyModal = openAddCompanyModal;
 window.openAddLinkModal = openAddLinkModal;
 window.goHome = goHome;
@@ -1175,7 +1195,6 @@ function showToast(msg) {
 
 // --- ADD COMPANY BUTTON ---
 document.getElementById('addCompanyBtn').addEventListener('click', openAddCompanyModal);
-document.getElementById('apiKeyBtn').addEventListener('click', openApiKeyModal);
 
 // Init
 render();
