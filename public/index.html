@@ -82,9 +82,27 @@
     gap: 14px;
   }
 
+  .logo-home {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    text-align: left;
+    transition: opacity 0.15s;
+  }
+
+  .logo-home:hover { opacity: 0.9; }
+
+  .logo-home:focus-visible {
+    outline: 2px solid var(--orange);
+    outline-offset: 4px;
+    border-radius: 10px;
+  }
+
   .logo-icon {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -95,20 +113,21 @@
 
   .logo-icon svg {
     display: block;
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
   }
 
   .logo h1 {
     font-family: var(--font-head);
-    font-size: 1.2rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
     color: var(--text);
+    line-height: 1.15;
   }
 
   .logo span {
-    font-weight: 400;
+    font-weight: 600;
     color: var(--muted);
   }
 
@@ -928,7 +947,7 @@
 <body>
 
 <header>
-  <div class="logo">
+  <button type="button" class="logo logo-home" id="logoHomeBtn" aria-label="Ir para a página inicial" onclick="goHome()">
     <div class="logo-icon" aria-hidden="true">
       <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" role="img">
         <title>Marca</title>
@@ -939,7 +958,7 @@
       </svg>
     </div>
     <h1>Portal <span>de Sistemas</span></h1>
-  </div>
+  </button>
   <div class="header-actions">
     <button class="btn-primary" id="addCompanyBtn">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
